@@ -7,7 +7,7 @@ print_help() {
     NAME=$(basename "$ARG0")
     cat <<EOF
 Usage: $NAME COMMAND [TARGET] [ARGS...]
-  Supported TARGETs: i686 (default), x86_64, lagom
+  Supported TARGETs: i686 (default), x86_64, lagom, aarch64
   Supported COMMANDs:
     build:      Compiles the target binaries, [ARGS...] are passed through to ninja
     install:    Installs the target binary
@@ -99,7 +99,11 @@ is_valid_target() {
         CMAKE_ARGS+=("-DSERENITY_ARCH=x86_64")
         return 0
     fi
-    [[ "$TARGET" =~ ^(i686|x86_64|lagom)$ ]] || return 1
+    if [ "$TARGET" = "aarch64" ]; then
+        CMAKE_ARGS+=("-DSERENITY_ARCH=aarch64")
+        return 0
+    fi
+    [[ "$TARGET" =~ ^(aarch64|i686|x86_64|lagom)$ ]] || return 1
 }
 
 create_build_dir() {

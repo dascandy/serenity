@@ -10,11 +10,15 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 echo "$DIR"
 
 ARCH=${ARCH:-"i686"}
+
 TARGET="$ARCH-pc-serenity"
 PREFIX="$DIR/Local/$ARCH"
 BUILD="$DIR/../Build/$ARCH"
 SYSROOT="$BUILD/Root"
-
+if [ "$ARCH" == "aarch64" ]; then
+  TARGET="aarch64-generic-serenity"
+  ARCH="armv8-a"
+fi
 MAKE="make"
 MD5SUM="md5sum"
 NPROC="nproc"
@@ -31,8 +35,8 @@ SYSTEM_NAME="$(uname -s)"
 # We *most definitely* don't need debug symbols in the linker/compiler.
 # This cuts the uncompressed size from 1.2 GiB per Toolchain down to about 120 MiB.
 # Hence, this might actually cause marginal speedups, although the point is to not waste space as blatantly.
-export CFLAGS="-g0 -O2 -mtune=native"
-export CXXFLAGS="-g0 -O2 -mtune=native"
+#export CFLAGS="-g0 -O2 -mtune=native"
+#export CXXFLAGS="-g0 -O2 -mtune=native"
 
 if [ "$SYSTEM_NAME" = "OpenBSD" ]; then
     MAKE=gmake

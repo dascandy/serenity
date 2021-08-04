@@ -1,7 +1,7 @@
 diff -Naur binutils-2.36.1/bfd/config.bfd binutils-2.36.1.serenity/bfd/config.bfd
 --- binutils-2.36.1/bfd/config.bfd	2021-01-09 11:47:33.000000000 +0100
 +++ binutils-2.36.1.serenity/bfd/config.bfd	2021-04-27 20:27:28.646876773 +0200
-@@ -224,7 +224,24 @@
+@@ -224,7 +224,30 @@
  
  case "${targ}" in
  # START OF targmatch.h
@@ -14,6 +14,12 @@ diff -Naur binutils-2.36.1/bfd/config.bfd binutils-2.36.1.serenity/bfd/config.bf
 +  x86_64-*-serenity*)
 +    targ_defvec=x86_64_elf64_vec
 +    targ_selvecs=i386_elf32_vec
++    want64=true
++    ;;
++
++  aarch64-*-serenity*)
++    targ_defvec=aarch64_elf64_le_vec
++    targ_selvecs="aarch64_elf64_le_vec arm_elf32_le_vec"
 +    want64=true
 +    ;;
 +
@@ -40,19 +46,20 @@ diff -Naur binutils-2.36.1/config.sub binutils-2.36.1.serenity/config.sub
 diff -Naur binutils-2.36.1/gas/configure.tgt binutils-2.36.1.serenity/gas/configure.tgt
 --- binutils-2.36.1/gas/configure.tgt	2021-01-09 11:47:33.000000000 +0100
 +++ binutils-2.36.1.serenity/gas/configure.tgt	2021-04-27 20:23:15.975422803 +0200
-@@ -123,6 +123,8 @@
+@@ -123,6 +123,9 @@
  generic_target=${cpu_type}-$vendor-$os
  # Note: This table is alpha-sorted, please try to keep it that way.
  case ${generic_target} in
 +  i386-*-serenity*)                     fmt=elf;;
 +  arm-*-serenity*)                      fmt=elf;;
++  aarch64-*-serenity*)                      fmt=elf;;
    aarch64*-*-elf*)			fmt=elf;;
    aarch64*-*-fuchsia*)			fmt=elf;;
    aarch64*-*-linux*)			fmt=elf em=linux
 diff -Naur binutils-2.36.1/ld/configure.tgt binutils-2.36.1.serenity/ld/configure.tgt
 --- binutils-2.36.1/ld/configure.tgt	2021-01-09 11:47:34.000000000 +0100
 +++ binutils-2.36.1.serenity/ld/configure.tgt	2021-04-27 20:23:15.975422803 +0200
-@@ -43,6 +43,19 @@
+@@ -43,6 +43,23 @@
  # Please try to keep this table more or less in alphabetic order - it
  # makes it much easier to lookup a specific archictecture.
  case "${targ}" in
@@ -65,6 +72,10 @@ diff -Naur binutils-2.36.1/ld/configure.tgt binutils-2.36.1.serenity/ld/configur
 +			targ_emul=elf_x86_64_serenity
 +			targ_extra_emuls="elf_i386_serenity elf_x86_64 elf_i386"
 +			;;
++aarch64-*-serenity*)
++			targ_emul=aarch64elf_serenity
++			targ_extra_emuls="aarch64elf_serenity aarch64elf"
++			;;
 +arm-*-serenity*)
 +			targ_emul=armelf_serenity
 +			targ_extra_emuls="armelf_serenity armelf"
@@ -72,6 +83,17 @@ diff -Naur binutils-2.36.1/ld/configure.tgt binutils-2.36.1.serenity/ld/configur
  aarch64_be-*-elf)	targ_emul=aarch64elfb
  			targ_extra_emuls="aarch64elf aarch64elf32 aarch64elf32b armelfb armelf"
  			;;
+diff -Naur binutils-2.36.1/ld/emulparams/aarch64elf_serenity.sh binutils-2.36.1.serenity/ld/emulparams/aarch64elf_serenity.sh
+--- binutils-2.36.1/ld/emulparams/aarch64elf_serenity.sh	1970-01-01 01:00:00.000000000 +0100
++++ binutils-2.36.1.serenity/ld/emulparams/aarch64elf_serenity.sh	2021-04-27 20:23:15.975422803 +0200
+@@ -0,0 +1,7 @@
++. ${srcdir}/emulparams/aarch64elf.sh
++MAXPAGESIZE="CONSTANT (MAXPAGESIZE)"
++TEXT_START_ADDR=0x00008000
++TARGET2_TYPE=got-rel
++
++unset STACK_ADDR
++unset EMBEDDED
 diff -Naur binutils-2.36.1/ld/emulparams/armelf_serenity.sh binutils-2.36.1.serenity/ld/emulparams/armelf_serenity.sh
 --- binutils-2.36.1/ld/emulparams/armelf_serenity.sh	1970-01-01 01:00:00.000000000 +0100
 +++ binutils-2.36.1.serenity/ld/emulparams/armelf_serenity.sh	2021-04-27 20:23:15.975422803 +0200
@@ -106,6 +128,14 @@ diff -Naur binutils-2.36.1/ld/Makefile.am binutils-2.36.1.serenity/ld/Makefile.a
  	earmelfb.c \
  	earmelfb_fbsd.c \
  	earmelfb_fuchsia.c \
+@@ -394,6 +395,7 @@
+	eaarch64linuxb.c \
+	eaarch64linux32.c \
+	eaarch64linux32b.c \
++	eaarch64elf_serenity.c \
+	eelf32_x86_64.c \
+	eelf32b4300.c \
+	eelf32bmip.c \
 diff -Naur binutils-2.36.1/ld/Makefile.in binutils-2.36.1.serenity/ld/Makefile.in
 --- binutils-2.36.1/ld/Makefile.in	2021-02-06 10:03:32.000000000 +0100
 +++ binutils-2.36.1.serenity/ld/Makefile.in	2021-04-27 20:23:15.975422803 +0200
@@ -125,7 +155,15 @@ diff -Naur binutils-2.36.1/ld/Makefile.in binutils-2.36.1.serenity/ld/Makefile.i
  	eh8300elf.c \
  	eh8300elf_linux.c \
  	eh8300helf.c \
-@@ -945,6 +947,7 @@
+@@ -882,6 +884,7 @@
+	eaarch64linuxb.c \
+	eaarch64linux32.c \
+	eaarch64linux32b.c \
++	eaarch64elf_serenity.c \
+	eelf32_x86_64.c \
+	eelf32b4300.c \
+	eelf32bmip.c \
+@@ -945,6 +948,7 @@
  	eelf_x86_64_cloudabi.c \
  	eelf_x86_64_fbsd.c \
  	eelf_x86_64_sol2.c \
